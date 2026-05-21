@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#6f8f72" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Will's Budget" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <title>Will's Budget</title>
+  <style>
+    :root { --bg:#f4f7ef; --card:#ffffff; --ink:#1e2a22; --muted:#657064; --green:#6f8f72; --dark:#243426; --soft:#e4eadc; --danger:#a64242; --warn:#a0712a; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+    .app { max-width:480px; margin:0 auto; padding:18px 14px 32px; }
+    .hero { background:linear-gradient(145deg,#243426,#6f8f72); color:white; border-radius:30px; padding:24px; box-shadow:0 12px 30px rgba(36,52,38,.18); }
+    .eyebrow { opacity:.75; font-size:13px; margin:0 0 6px; }
+    h1 { margin:0; font-size:32px; line-height:1; letter-spacing:-.04em; }
+    h2 { margin:0 0 8px; font-size:20px; }
+    .big { font-size:48px; line-height:1; font-weight:800; letter-spacing:-.06em; margin:16px 0 4px; }
+    .pill { display:inline-flex; padding:7px 11px; border-radius:999px; background:rgba(255,255,255,.18); font-size:13px; margin-top:14px; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:14px 0; }
+    .card { background:var(--card); border-radius:26px; padding:18px; margin:14px 0; box-shadow:0 8px 24px rgba(36,52,38,.08); }
+    .mini { background:var(--card); border-radius:22px; padding:16px; box-shadow:0 8px 24px rgba(36,52,38,.08); }
+    .label { color:var(--muted); font-size:12px; margin:0 0 5px; }
+    .value { font-size:24px; font-weight:800; margin:0; }
+    input, select, button { font:inherit; }
+    input, select { width:100%; min-height:48px; border:0; background:var(--soft); border-radius:16px; padding:12px; color:var(--ink); outline:none; }
+    .row { display:flex; gap:10px; align-items:center; }
+    .row > * { flex:1; }
+    .field { margin:10px 0; }
+    .field label { display:block; font-size:13px; color:var(--muted); margin:0 0 5px; }
+    button { border:0; border-radius:18px; padding:13px 14px; background:var(--green); color:white; font-weight:700; width:100%; cursor:pointer; }
+    button.secondary { background:var(--soft); color:var(--dark); }
+    button.danger { background:#eadcdc; color:var(--danger); }
+    .quick { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:10px; }
+    .quick button { padding:10px 6px; border-radius:14px; background:var(--soft); color:var(--dark); font-size:13px; }
+    .bar { height:12px; background:var(--soft); border-radius:99px; overflow:hidden; margin:12px 0; }
+    .fill { height:100%; background:var(--green); width:0%; transition:width .2s ease; }
+    .warning { padding:12px; border-radius:18px; font-size:14px; background:#fff2d9; color:var(--warn); margin-top:12px; }
+    .warning.over { background:#f3dfdf; color:var(--danger); }
+    .purchase, .account { background:var(--soft); border-radius:18px; padding:12px; margin:8px 0; }
+    .purchase strong, .account strong { display:block; }
+    .sub { color:var(--muted); font-size:13px; margin-top:3px; }
+    canvas { width:100%; max-height:220px; }
+    .small-actions { display:flex; gap:8px; margin-top:10px; }
+    .small-actions button { padding:10px; border-radius:14px; }
+    a { color:inherit; }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <p class="eyebrow">Will's Budget</p>
+      <h1>Weekly Money Check-In</h1>
+      <div class="big" id="leftBig">$0</div>
+      <p class="eyebrow" id="leftLabel">left this week</p>
+      <div class="pill" id="statusPill">Loading...</div>
+    </section>
+
+    <section class="grid">
+      <div class="mini"><p class="label">Spent This Week</p><p class="value" id="spentVal">$0</p></div>
+      <div class="mini"><p class="label">Safe Tonight</p><p class="value" id="safeVal">$0</p></div>
+      <div class="mini"><p class="label">Monthly Income</p><p class="value">$3,800</p></div>
+      <div class="mini"><p class="label">Est. Left Month</p><p class="value" id="monthLeftVal">$0</p></div>
+    </section>
+
+    <section class="card">
+      <h2>Add Purchase</h2>
+      <div class="row">
+        <div class="field"><label>Amount</label><input id="purchaseAmount" type="number" inputmode="decimal" placeholder="0.00"></div>
+        <div class="field"><label>Category</label><select id="purchaseCategory"></select></div>
+      </div>
+      <div class="field"><label>Note</label><input id="purchaseNote" placeholder="ex. Trader Joe's, Uber, dinner"></div>
+      <button onclick="addPurchase()">Add Purchase</button>
+      <div class="quick">
+        <button onclick="quickAmount(5)">+$5</button><button onclick="quickAmount(15)">+$15</button><button onclick="quickAmount(25)">+$25</button><button onclick="quickAmount(50)">+$50</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Targets</h2>
+      <div class="field"><label>Weekly spending limit</label><input id="weeklyLimit" type="number" inputmode="decimal"></div>
+      <div class="field"><label>Monthly savings goal</label><input id="savingsGoal" type="number" inputmode="decimal"></div>
+      <button onclick="saveTargets()">Save Targets</button>
+    </section>
+
+    <section class="card">
+      <h2>Linked Accounts</h2>
+      <p class="sub">Manual account list with optional login links. Do not enter usernames or passwords.</p>
+      <section class="grid">
+        <div class="mini"><p class="label">Cash</p><p class="value" id="cashTotal">$0</p></div>
+        <div class="mini"><p class="label">Credit</p><p class="value" id="creditTotal">$0</p></div>
+      </section>
+      <div class="mini" style="background:#243426;color:white;"><p class="label" style="color:#d8e2d2;">Net Cash After Credit</p><p class="value" id="netCash">$0</p></div>
+      <div id="accountsList"></div>
+      <h3>Add Account</h3>
+      <div class="field"><label>Name</label><input id="acctName" placeholder="Checking, Savings, Amex"></div>
+      <div class="row">
+        <div class="field"><label>Type</label><select id="acctType"><option>Checking</option><option>Savings</option><option>Credit</option><option>Other</option></select></div>
+        <div class="field"><label>Balance</label><input id="acctBalance" type="number" inputmode="decimal" placeholder="0"></div>
+      </div>
+      <div class="field"><label>Optional login link</label><input id="acctLink" type="url" placeholder="https://..."></div>
+      <button onclick="addAccount()">Add Account</button>
+    </section>
+
+    <section class="card">
+      <h2>Analytics</h2>
+      <canvas id="chart" width="420" height="220"></canvas>
+      <div id="categoryTotals"></div>
+    </section>
+
+    <section class="card">
+      <h2>Paycheck Plan</h2>
+      <div class="purchase"><strong>5th — $1,600</strong><span class="sub">Set aside $900 for rent + $280 car insurance</span></div>
+      <div class="purchase"><strong>20th — $1,600</strong><span class="sub">Set aside $850 for rent</span></div>
+      <div class="purchase"><strong>28th — $600</strong><span class="sub">Use for savings, travel, and flex spending</span></div>
+    </section>
+
+    <section class="card">
+      <h2>Purchase History</h2>
+      <div id="purchaseHistory"></div>
+      <div class="small-actions"><button class="secondary" onclick="testNotification()">Test Reminder</button><button class="danger" onclick="startNewWeek()">Start New Week</button></div>
+    </section>
+  </main>
+<script>
+const monthlyIncome = 3800;
+const fixedTotal = 1750 + 175 + 280 + 15 + 2.99;
+const categories = ['Groceries','Eating Out','Going Out','Gas','Shopping / Misc','Travel'];
+let state = JSON.parse(localStorage.getItem('budgetAppV4') || 'null') || {
+  weeklyLimit: 325,
+  savingsGoal: 400,
+  purchases: [],
+  accounts: [
+    {id:1,name:'Checking',type:'Checking',balance:0,link:''},
+    {id:2,name:'Savings',type:'Savings',balance:0,link:''},
+    {id:3,name:'Credit Card',type:'Credit',balance:0,link:''}
+  ]
+};
+function money(n){ const sign = n < 0 ? '-$' : '$'; return sign + Math.abs(n).toFixed(0); }
+function save(){ localStorage.setItem('budgetAppV4', JSON.stringify(state)); render(); }
+function init(){ document.getElementById('weeklyLimit').value = state.weeklyLimit; document.getElementById('savingsGoal').value = state.savingsGoal; document.getElementById('purchaseCategory').innerHTML = categories.map(c=>`<option>${c}</option>`).join(''); render(); if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js'); }
+function totals(){ const t = Object.fromEntries(categories.map(c=>[c,0])); state.purchases.forEach(p=> t[p.category]=(t[p.category]||0)+Number(p.amount)); return t; }
+function render(){
+  const t = totals(); const spent = Object.values(t).reduce((a,b)=>a+b,0); const left = state.weeklyLimit - spent; const safe = Math.max(0, Math.floor(left/2)); const monthLeft = monthlyIncome - fixedTotal - (spent*4);
+  document.getElementById('leftBig').textContent = money(left); document.getElementById('leftLabel').textContent = left >= 0 ? 'left this week' : 'over this week';
+  document.getElementById('spentVal').textContent = money(spent); document.getElementById('safeVal').textContent = money(safe); document.getElementById('monthLeftVal').textContent = money(monthLeft);
+  const pill = document.getElementById('statusPill'); pill.textContent = left < 0 ? 'You are over this week' : spent >= state.weeklyLimit*.8 ? 'You are close to your weekly limit' : 'You are in a good spot';
+  document.getElementById('categoryTotals').innerHTML = categories.map(c=>`<div class='purchase'><strong>${c}: ${money(t[c]||0)}</strong><div class='bar'><div class='fill' style='width:${Math.min(100,((t[c]||0)/state.weeklyLimit)*100)}%'></div></div></div>`).join('');
+  document.getElementById('purchaseHistory').innerHTML = state.purchases.length ? state.purchases.slice().reverse().map(p=>`<div class='purchase'><strong>${money(p.amount)} — ${p.category}</strong><div class='sub'>${p.note || 'No note'} • ${new Date(p.date).toLocaleDateString()}</div></div>`).join('') : '<p class="sub">No purchases yet.</p>';
+  renderAccounts(); drawChart(t); }
+function saveTargets(){ state.weeklyLimit = Number(document.getElementById('weeklyLimit').value || 0); state.savingsGoal = Number(document.getElementById('savingsGoal').value || 0); save(); }
+function quickAmount(n){ document.getElementById('purchaseAmount').value = n; }
+function addPurchase(){ const amount=Number(document.getElementById('purchaseAmount').value||0); if(!amount) return; state.purchases.push({id:Date.now(), amount, category:document.getElementById('purchaseCategory').value, note:document.getElementById('purchaseNote').value, date:new Date().toISOString()}); document.getElementById('purchaseAmount').value=''; document.getElementById('purchaseNote').value=''; save(); }
+function startNewWeek(){ if(confirm('Start a new week? This clears purchase history for this week.')){ state.purchases=[]; save(); } }
+function renderAccounts(){
+  let cash=0, credit=0; state.accounts.forEach(a=>{ if(a.type==='Credit') credit += Number(a.balance||0); else cash += Number(a.balance||0); });
+  document.getElementById('cashTotal').textContent=money(cash); document.getElementById('creditTotal').textContent=money(credit); document.getElementById('netCash').textContent=money(cash-credit);
+  document.getElementById('accountsList').innerHTML = state.accounts.map(a=>`<div class='account'><strong>${a.name} — ${a.type}</strong><span class='sub'>${money(Number(a.balance||0))}</span><div class='small-actions'>${a.link?`<button class='secondary' onclick="window.open('${a.link.replaceAll("'","")}','_blank')">Open</button>`:''}<button class='danger' onclick='deleteAccount(${a.id})'>Delete</button></div></div>`).join(''); }
+function addAccount(){ const name=document.getElementById('acctName').value.trim(); if(!name) return; state.accounts.push({id:Date.now(),name,type:document.getElementById('acctType').value,balance:Number(document.getElementById('acctBalance').value||0),link:document.getElementById('acctLink').value}); ['acctName','acctBalance','acctLink'].forEach(id=>document.getElementById(id).value=''); save(); }
+function deleteAccount(id){ state.accounts = state.accounts.filter(a=>a.id!==id); save(); }
+function drawChart(t){ const canvas=document.getElementById('chart'); const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); const vals=categories.map(c=>t[c]||0); const max=Math.max(1,...vals); const w=canvas.width/categories.length - 10; vals.forEach((v,i)=>{ const h=(v/max)*150; const x=i*(canvas.width/categories.length)+8; const y=180-h; ctx.fillStyle='#6f8f72'; ctx.fillRect(x,y,w,h); ctx.fillStyle='#657064'; ctx.font='11px sans-serif'; ctx.fillText(categories[i].split(' ')[0],x,205); ctx.fillStyle='#1e2a22'; ctx.fillText(money(v),x,y-6); }); }
+async function testNotification(){ if(!('Notification' in window)) return alert('Notifications are not supported here.'); const perm = await Notification.requestPermission(); if(perm === 'granted') new Notification("Budget check", { body: "Quick reminder to log your spending." }); }
+init();
+</script>
+</body>
+</html>
